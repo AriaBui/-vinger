@@ -1,0 +1,131 @@
+DROP TABLE  vikartjenesten;
+DROP TABLE  oppdrag;
+DROP TABLE  kval_kandidat;
+DROP TABLE  kvalifikasjon;
+DROP TABLE  kandidat;
+DROP TABLE  bedrift;
+
+
+
+CREATE TABLE vikartjenesten(
+org_nr VARCHAR(30) ,
+navn VARCHAR(30) NOT NULL ,
+adresse VARCHAR(30) NOT NULL UNIQUE,
+telefon VARCHAR(12) ,
+epost VARCHAR(30) ,
+CONSTRAINT vikartjenesten_pk PRIMARY KEY(org_nr));
+
+
+CREATE TABLE bedrift(
+organisasjonsnr CHAR(20) NOT NULL,
+bedrift_navn  VARCHAR(30 )NOT NULL UNIQUE,
+telefon VARCHAR(12) ,
+epost VARCHAR(30) ,
+CONSTRAINT bedrift_pk PRIMARY KEY(organisasjonsnr));
+
+CREATE TABLE oppdrag(
+oppdrag_id INTEGER NOT NULL AUTO_INCREMENT,
+planlagt_startdato DATE NOT NULL,
+planlagt_sluttdato DATE NOT NULL,
+planlagt_ant_timer INTEGER NOT NULL,
+virkelig_startdato DATE,
+virkelig_sluttdato DATE,
+virkelig_ant_timer INTEGER,
+sluttattest VARCHAR(400),
+organisasjonsnr CHAR(20) NOT NULL,
+kval_id INTEGER,
+kandidat_id INTEGER,
+CONSTRAINT oppdrag_pk PRIMARY KEY(oppdrag_id));
+
+
+CREATE TABLE kandidat(
+kandidat_id INTEGER NOT NULL AUTO_INCREMENT,
+fornavn VARCHAR(20) NOT NULL,
+etternavn VARCHAR(20) NOT NULL,
+telefon VARCHAR(12),
+epost VARCHAR(30),
+CONSTRAINT kandidat_pk PRIMARY KEY(kandidat_id));
+
+CREATE TABLE kvalifikasjon(
+kval_id INTEGER NOT NULL AUTO_INCREMENT,
+beskrivelse VARCHAR(30) NOT NULL,
+CONSTRAINT kvalifikasjon_pk PRIMARY KEY(kval_id));
+
+CREATE TABLE kval_kandidat(
+kval_id INTEGER NOT NULL,
+kandidat_id INTEGER NOT NULL,
+CONSTRAINT kval_kandidat_pk PRIMARY KEY (kval_id, kandidat_id) );
+
+-- Legger på referanseintegritet (fremmednøkler)
+
+ALTER TABLE oppdrag
+ADD CONSTRAINT oppdrag_fk1 FOREIGN KEY (organisasjonsnr) REFERENCES bedrift(organisasjonsnr);
+
+ALTER TABLE oppdrag
+ADD CONSTRAINT oppdrag_fk2 FOREIGN KEY (kval_id) REFERENCES kvalifikasjon(kval_id);
+
+ALTER TABLE oppdrag
+ADD CONSTRAINT oppdrag_fk3 FOREIGN KEY (kval_id ,kandidat_id) REFERENCES kval_kandidat(kval_id, kandidat_id);
+
+
+ALTER TABLE kval_kandidat
+ADD CONSTRAINT kval_kandidat_fk1 FOREIGN KEY (kval_id) REFERENCES kvalifikasjon(kval_id);
+
+ALTER TABLE kval_kandidat
+ADD CONSTRAINT kval_kandidat_fk2 FOREIGN KEY (kandidat_id) REFERENCES   kandidat(kandidat_id);
+
+-- Legger inn data
+
+INSERT INTO vikartjenesten VALUES ('VIKARIAT2O45', 'VIKAR TJENESTEN ELL' , 'Ingrid Gate 34', '45436', NULL );
+
+INSERT INTO bedrift VALUES('3OSCAR4' , ' OSCARCO ' , '45365453', 'Oscarco@gmail.com' );
+INSERT INTO bedrift VALUES('53OLE' , ' OLE CO ' , '44535655', 'Oleco@gmail.com' );
+INSERT INTO bedrift VALUES('3KIRK3' , ' KIRK CO ' , '47638456', 'kirkco@gmail.com' );
+
+INSERT INTO kandidat VALUES(1, 'Aria', 'Bui', '4517134', 'ariaaa@gmail.com');
+INSERT INTO kandidat VALUES(2, 'Lene' , 'Karen', '4536534', 'Lenekaren@gmail.com');
+INSERT INTO kandidat VALUES(3, 'Ole', 'Hansen', '41385467', 'Olehansen@gmail.com');
+INSERT INTO kandidat VALUES(4, 'Marie', 'Huynh', '46385467', 'MarieHuynh@gmail.com');
+
+INSERT INTO kvalifikasjon VALUES(1, 'Butikkerfaring');
+INSERT INTO kvalifikasjon VALUES(2, 'Sjenkelisens');
+INSERT INTO kvalifikasjon VALUES(3, 'Mastergrad innen IKT');
+
+INSERT INTO kval_kandidat VALUES( 1,2);
+INSERT INTO kval_kandidat VALUES( 2,3);
+INSERT INTO kval_kandidat VALUES( 3,1);
+
+INSERT INTO oppdrag VALUES(DEFAULT, DATE('2017-12-15'), DATE('2019-12-15'), 1650, DATE('2018-01-03'), NULL, NULL, NULL, '3OSCAR4', 3, 1);
+INSERT INTO oppdrag VALUES(DEFAULT,('2018-03-17'), DATE('2019-12-17'), 1650, NULL, NULL, NULL, NULL, '53OLE', 1,NULL );
+INSERT INTO oppdrag VALUES(DEFAULT,('2017-04-04'), DATE('2019-11-17'), 1650, DATE('2017-04-04'), DATE(('2018-01-23')), 1565, ' Dette er en sluttattest' ,'3KIRK3', 2, 3 );
+
+-- oppg d)
+
+--oppg 1 : Lag en liste over alle bedirftene: Navn, telefon og epost skal skrives ut   (Projeksjon)
+
+SELECT bedrift_navn, telefon, epost
+FROM bedrift;
+
+--oppg 2 : Lag en liste over alle oppdragene. Skriv ut oppdragets nummer. navn og tlf til bedriften som tilbyr oppdraget
+
+SELECT oppdrag.oppdrag_id, bedrift.bedrift_navn, bedrift.telefon
+FROM oppdrag, bedrift
+WHERE oppdrag.organisasjonsnr=bedrift.organisasjonsnr;
+
+--oppg 3 : Lag en liste over kandidater og kvalifikasjoner. Kandidatnavn og kvalifikasjonsbeskrivelse skal med i utskriften og løpenumrene som identeifiserer kandidat og kvalifikasjon
+
+SELECT kandidat.kandidat_id, kandidat.fornavn, kandidat.etternavn, kvalifikasjon.kval_id, kvalifikasjon.beskrivelse
+FROM kandidat, kvalifikasjon, kval_kandidat
+WHERE kandidat.kandidat_id=kval_kandidat.kandidat_id AND kval_kandidat.kval_id=kvalifikasjon.kval_id;
+
+--oppg 4: SAMME SOM OPPGAVE 3, men her skal vi få med kandidatene som ikke er registrert med kvalifikasjoner
+SELECT kandidat.kandidat_id, kandidat.fornavn, kandidat.etternavn, kvalifikasjon.kval_id, kvalifikasjon.beskrivelse
+FROM kandidat LEFT JOIN (kvalifikasjon, kval_kandidat)
+ON(kandidat.kandidat_id=kval_kandidat.kandidat_id AND kval_kandidat.kval_id=kvalifikasjon.kval_id);
+
+--oppg 5: Skriver ut jobbhistorikken til en bestemt person, gitt kandidatnr.
+-- Vikarnavn , sluttdato, oppdragsnr og bedriftnavn skal med. (Skriver ut for vikar 3)
+
+SELECT kandidat.fornavn, kandidat.etternavn, oppdrag.virkelig_sluttdato, oppdrag.oppdrag_id, bedrift.bedrift_navn
+FROM kandidat, oppdrag, bedrift
+WHERE (kandidat.kandidat_id=3 AND kandidat.kandidat_id=oppdrag.kandidat_id AND oppdrag.organisasjonsnr=bedrift.organisasjonsnr);
